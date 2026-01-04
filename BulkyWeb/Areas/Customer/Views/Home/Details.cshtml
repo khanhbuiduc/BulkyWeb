@@ -1,0 +1,96 @@
+@model Product
+
+<div class="container py-5">
+    <div class="row">
+        <!-- Product Image -->
+        <div class="col-lg-5 mb-4">
+            <div class="card border-0 shadow">
+                <img src="@Model.ImageUrl" class="card-img-top" alt="@Model.Title" style="object-fit: cover;">
+            </div>
+        </div>
+
+        <!-- Product Information -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow h-100">
+                <div class="card-body p-4">
+                    <!-- Category Badge -->
+                    <div class="mb-3">
+                        <span class="badge bg-secondary fs-6">@Model.Category?.Name</span>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="display-5 fw-bold text-dark mb-3">@Model.Title</h1>
+
+                    <!-- Author -->
+                    <p class="text-muted fs-5 mb-4">
+                        <i class="bi bi-person-fill me-2"></i>by @Model.Author
+                    </p>
+
+                    <!-- ISBN -->
+                    <div class="mb-3">
+                        <strong>ISBN:</strong> <span class="text-muted">@Model.ISBN</span>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">Description</h5>
+                        <p class="text-muted">@Html.Raw(Model.Description)</p>
+                    </div>
+
+                    <!-- Pricing Table -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">Pricing</h5>
+                        <table class="table table-bordered">
+                            <thead class="table-secondary">
+                                <tr>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>List Price</td>
+                                    <td class="text-decoration-line-through text-muted">@Model.ListPrice.ToString("c")</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td>1-49</td>
+                                    <td class="fw-bold text-success">@Model.Price.ToString("c")</td>
+                                </tr>
+                                <tr>
+                                    <td>50-99</td>
+                                    <td class="fw-bold">@Model.Price50.ToString("c")</td>
+                                </tr>
+                                <tr>
+                                    <td>100+</td>
+                                    <td class="fw-bold">@Model.Price100.ToString("c")</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Quantity and Add to Cart -->
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Quantity</label>
+                            <input type="number" class="form-control" value="1" min="1" />
+                        </div>
+                        <div class="col-md-8 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-cart-plus me-2"></i>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Back to List -->
+                    <div class="mt-4">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>
+                            Back to Products
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

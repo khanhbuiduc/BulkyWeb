@@ -1,0 +1,122 @@
+@using System.IO
+@model ProductVM
+
+<div class="card mt-4 mb-5">
+    <div class="card-header bg-secondary bg-gradient text-white py-3">
+        <h2 class="text-white mb-0 text-center">@(Model.Product.Id == 0 ? "Create" : "Edit") Product</h2>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <input asp-for="Product.Id" hidden />
+            <input asp-for="Product.ImageUrl" hidden />
+            <div class="row">
+                <div class="col-md-10">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Product.Title" class="form-label"></label>
+                                <input asp-for="Product.Title" type="text" class="form-control" />
+                                <span asp-validation-for="Product.Title" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Product.Description" class="form-label"></label>
+                                <textarea asp-for="Product.Description" class="form-control"></textarea>
+                                <span asp-validation-for="Product.Description" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Product.ISBN" class="form-label"></label>
+                                <input asp-for="Product.ISBN" type="text" class="form-control" />
+                                <span asp-validation-for="Product.ISBN" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Product.Author" class="form-label"></label>
+                                <input asp-for="Product.Author" type="text" class="form-control" />
+                                <span asp-validation-for="Product.Author" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Product.CategoryId" class="form-label"></label>
+                                <select asp-for="Product.CategoryId" asp-items="@Model.CategoryList" class="form-select">
+                                    <option value="0" disabled selected>--Select Category--</option>
+                                </select>
+                                <span asp-validation-for="Product.CategoryId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Product.ListPrice" class="form-label"></label>
+                                <input asp-for="Product.ListPrice" type="number" step="0.01" class="form-control" />
+                                <span asp-validation-for="Product.ListPrice" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Product.Price" class="form-label"></label>
+                                <input asp-for="Product.Price" type="number" step="0.01" class="form-control" />
+                                <span asp-validation-for="Product.Price" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Product.Price50" class="form-label"></label>
+                                <input asp-for="Product.Price50" type="number" step="0.01" class="form-control" />
+                                <span asp-validation-for="Product.Price50" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Product.Price100" class="form-label"></label>
+                                <input asp-for="Product.Price100" type="number" step="0.01" class="form-control" />
+                                <span asp-validation-for="Product.Price100" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Image</label>
+                                <input type="file" id="uploadBox" name="file" class="form-control" onchange="previewImage(this)" />
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <button type="submit" class="btn btn-primary form-control">
+                                @(Model.Product.Id == 0 ? "Create" : "Update")
+                            </button>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <a asp-controller="Product" asp-action="Index" class="btn border form-control">
+                                Back to List
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <img id="imagePreview" src="@(string.IsNullOrEmpty(Model.Product.ImageUrl) ? "" : Model.Product.ImageUrl)" 
+                         class="img-fluid" 
+                         style="@(string.IsNullOrEmpty(Model.Product.ImageUrl) ? "display:none;" : "")max-width: 100%; border-radius: 5px; border: 1px solid #bbb;" />
+                    <div id="noImagePlaceholder" style="@(!string.IsNullOrEmpty(Model.Product.ImageUrl) ? "display:none;" : "")padding: 20px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6; text-align: center;">
+                        <i class="bi bi-image" style="font-size: 3rem; color: #6c757d;"></i>
+                        <p class="mt-2 text-muted">No Image</p>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.tiny.cloud/1/5yawfz9vtdd1q8y96mvd3ip1mrhecbk99ya8ff3enftl01st/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+    <script>
+        tinymce.init({
+            selector: 'textarea',
+            plugins: 'lists link image table code help wordcount',
+            toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help'
+        });
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                    document.getElementById('noImagePlaceholder').style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+    <partial name="_ValidationScriptsPartial" />
+}
