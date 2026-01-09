@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
+using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authentication;
@@ -33,6 +34,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
         private RoleManager<IdentityRole> _roleManager;
+        private readonly IUnitOfWorkRepository _unitOfWork;
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
@@ -40,7 +42,8 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             SignInManager<IdentityUser> signInManager,
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            IUnitOfWorkRepository unitOfWork)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -49,6 +52,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             _logger = logger;
             _emailSender = emailSender;
             _roleManager = roleManager;
+            _unitOfWork = unitOfWork;
         }
 
         /// <summary>
@@ -71,6 +75,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
         public IList<AuthenticationScheme> ExternalLogins { get; set; }
 
         public IEnumerable<SelectListItem> RoleList { get; set; }
+        public IEnumerable<SelectListItem> CompanyList { get; set; }
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -128,6 +133,9 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
 
             [Display(Name = "Phone Number")]
             public string PhoneNumber { get; set; }
+
+            [Display(Name = "Company")]
+            public int? CompanyId { get; set; }
         }
 
 
@@ -139,6 +147,13 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 Text = x.Name,
                 Value = x.Name
             });
+            
+            CompanyList = _unitOfWork.Company.GetAll().Select(c => new SelectListItem
+            {
+                Text = c.Name,
+                Value = c.Id.ToString()
+            });
+            
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
         }
@@ -190,6 +205,11 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 user.PostalCode = Input.PostalCode;
                 user.PhoneNumber = Input.PhoneNumber;
                 
+                if (Input.Role == SD.Role_Company)
+                {
+                    user.CompanyId = Input.CompanyId;
+                }
+                
                 var result = await _userManager.CreateAsync(user, Input.Password);
 
                 if (result.Succeeded)
@@ -237,6 +257,12 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             {
                 Text = x.Name,
                 Value = x.Name
+            });
+            
+            CompanyList = _unitOfWork.Company.GetAll().Select(c => new SelectListItem
+            {
+                Text = c.Name,
+                Value = c.Id.ToString()
             });
 
             // If we got this far, something failed, redisplay form

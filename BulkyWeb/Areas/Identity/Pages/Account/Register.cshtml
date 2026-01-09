@@ -61,6 +61,14 @@
                                     <label asp-for="Input.Role">Role</label>
                                     <span asp-validation-for="Input.Role" class="text-danger"></span>
                                 </div>
+                                
+                                <div class="form-floating mb-3">
+                                    <select asp-for="Input.CompanyId" asp-items="@Model.CompanyList" class="form-select">
+                                        <option disabled selected>-- Select Company --</option>
+                                    </select>
+                                    <label asp-for="Input.CompanyId">Company</label>
+                                    <span asp-validation-for="Input.CompanyId" class="text-danger"></span>
+                                </div>
                             </div>
                             
                             <!-- Right Column -->
@@ -142,4 +150,27 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            // Hide company dropdown initially
+            $('#Input_CompanyId').closest('.form-floating').hide();
+            
+            // Show/hide company dropdown based on role selection
+            $('#Input_Role').change(function () {
+                var selectedRole = $(this).val();
+                if (selectedRole === 'Company') {
+                    $('#Input_CompanyId').closest('.form-floating').show();
+                } else {
+                    $('#Input_CompanyId').closest('.form-floating').hide();
+                    $('#Input_CompanyId').val('');
+                }
+            });
+            
+            // Check initial value on page load
+            var initialRole = $('#Input_Role').val();
+            if (initialRole === 'Company') {
+                $('#Input_CompanyId').closest('.form-floating').show();
+            }
+        });
+    </script>
 }
