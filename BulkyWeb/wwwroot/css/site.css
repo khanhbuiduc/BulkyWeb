@@ -557,3 +557,29 @@ bg-success {
         background-color: #578553;
         border-color: #578553;
     }
+
+    /* Shopping Cart Icon Styles */
+.nav-link.cart-icon {
+    position: relative;
+    transition: transform 0.2s ease;
+}
+
+.nav-link.cart-icon:hover {
+    transform: scale(1.1);
+}
+
+.nav-link.cart-icon .badge {
+    font-size: 0.65rem;
+    min-width: 18px;
+    height: 18px;
+    padding: 0.25em 0.4em;
+    line-height: 1;
+}
+
+.nav-link.cart-icon i {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-link.cart-icon:hover i {
+    color: #fff;
+}

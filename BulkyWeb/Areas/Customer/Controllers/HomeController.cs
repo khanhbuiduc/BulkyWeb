@@ -1,7 +1,10 @@
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
+using Bulky.Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace BulkyWeb.Controllers
 {
@@ -25,12 +28,53 @@ namespace BulkyWeb.Controllers
 
         public IActionResult Details(int id)
         {
-            Product product = _unitOfWork.Product.Get(u => u.Id == id, includeProperties: "Category");
-            if (product == null)
+            ShoppingCart cart = new()
+            {
+                Product = _unitOfWork.Product.Get(u => u.Id == id, includeProperties: "Category"),
+                Count = 1,
+                ProductId = id
+            };
+            
+            if (cart.Product == null)
             {
                 return NotFound();
             }
-            return View(product);
+            return View(cart);
+        }
+
+        [HttpPost]
+        [Authorize]
+        public IActionResult Details(ShoppingCart shoppingCart)
+        {
+            var claimsIdentity = (ClaimsIdentity)User.Identity;
+            var userId = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier).Value;
+            shoppingCart.ApplicationUserId = userId;
+
+            ShoppingCart cartFromDb = _unitOfWork.ShoppingCart.Get(u => u.ApplicationUserId == userId && 
+                u.ProductId == shoppingCart.ProductId);
+
+            if (cartFromDb != null)
+            {
+                // Shopping cart exists, update count
+                cartFromDb.Count += shoppingCart.Count;
+                _unitOfWork.ShoppingCart.Update(cartFromDb);
+            }
+            else
+            {
+                // Add cart record - reset Id to 0 to let database generate it
+                shoppingCart.Id = 0;
+                _unitOfWork.ShoppingCart.Add(shoppingCart);
+            }
+            
+            _unitOfWork.Save();
+            
+            // Update session with cart count
+            HttpContext.Session.SetInt32(SD.SessionCart, 
+                _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == userId).Count());
+            
+            TempData["success"] = "Cart updated successfully";
+            
+            return RedirectToAction(nameof(Index));
         }
 
         public IActionResult Privacy()

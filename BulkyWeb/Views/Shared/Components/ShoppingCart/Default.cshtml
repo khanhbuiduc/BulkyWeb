@@ -1,0 +1,12 @@
+@model int
+
+<a asp-area="Customer" asp-controller="ShoppingCart" asp-action="Index" class="nav-link cart-icon position-relative me-3">
+    <i class="bi bi-cart3 fs-5"></i>
+    @if (Model > 0)
+    {
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            @Model
+            <span class="visually-hidden">items in cart</span>
+        </span>
+    }
+</a>
