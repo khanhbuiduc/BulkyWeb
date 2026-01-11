@@ -1,0 +1,168 @@
+@model OrderHeader
+
+@{
+    ViewData["Title"] = "Order Details";
+    var orderDetails = ViewBag.OrderDetails as IEnumerable<OrderDetail>;
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary bg-gradient text-white py-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h3 class="text-white mb-0">
+                                <i class="bi bi-receipt me-2"></i>
+                                Order Details
+                            </h3>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-light text-dark fs-6">Order #@Model.Id</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <!-- Order Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title text-primary mb-3">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Order Information
+                                    </h5>
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Order Date:</strong></div>
+                                        <div class="col-7">@Model.OrderDate.ToString("MMM dd, yyyy hh:mm tt")</div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Order Status:</strong></div>
+                                        <div class="col-7">
+                                            @if (Model.OrderStatus == "Approved")
+                                            {
+                                                <span class="badge bg-success">@Model.OrderStatus</span>
+                                            }
+                                            else if (Model.OrderStatus == "Pending")
+                                            {
+                                                <span class="badge bg-warning text-dark">@Model.OrderStatus</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">@Model.OrderStatus</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Payment Status:</strong></div>
+                                        <div class="col-7">
+                                            @if (Model.PaymentStatus == "ApprovedForDelayedPayment")
+                                            {
+                                                <span class="badge bg-warning text-dark">Delayed Payment</span>
+                                            }
+                                            else if (Model.PaymentStatus == "Approved")
+                                            {
+                                                <span class="badge bg-success">Paid</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">@Model.PaymentStatus</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(Model.TrackingNumber))
+                                    {
+                                        <div class="row mb-2">
+                                            <div class="col-5"><strong>Tracking #:</strong></div>
+                                            <div class="col-7">@Model.TrackingNumber</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.Carrier))
+                                    {
+                                        <div class="row mb-2">
+                                            <div class="col-5"><strong>Carrier:</strong></div>
+                                            <div class="col-7">@Model.Carrier</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shipping Address -->
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title text-primary mb-3">
+                                        <i class="bi bi-geo-alt me-2"></i>
+                                        Shipping Address
+                                    </h5>
+                                    <address>
+                                        <strong>@Model.Name</strong><br />
+                                        @Model.StreetAddress<br />
+                                        @Model.City, @Model.State @Model.PostalCode<br />
+                                        <strong>Phone:</strong> @Model.PhoneNumber
+                                    </address>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Items -->
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary mb-3">
+                                <i class="bi bi-box-seam me-2"></i>
+                                Order Items
+                            </h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Price</th>
+                                            <th>Quantity</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (orderDetails != null)
+                                        {
+                                            @foreach (var item in orderDetails)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <strong>@item.Product.Title</strong>
+                                                        <br />
+                                                        <small class="text-muted">by @item.Product.Author</small>
+                                                    </td>
+                                                    <td>@item.Price.ToString("c")</td>
+                                                    <td>@item.Count</td>
+                                                    <td><strong>@((item.Price * item.Count).ToString("c"))</strong></td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-active">
+                                            <td colspan="3" class="text-end"><strong>Order Total:</strong></td>
+                                            <td><strong class="text-success fs-5">@Model.OrderTotal.ToString("c")</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12 text-center">
+                            <a asp-action="Index" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Back to Orders
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

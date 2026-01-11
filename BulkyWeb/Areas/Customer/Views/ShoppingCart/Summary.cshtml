@@ -1,6 +1,14 @@
 @model ShoppingCartVM
 
 <form method="post">
+    <input asp-for="OrderHeader.ApplicationUserId" hidden />
+    <input asp-for="OrderHeader.Name" hidden />
+    <input asp-for="OrderHeader.PhoneNumber" hidden />
+    <input asp-for="OrderHeader.StreetAddress" hidden />
+    <input asp-for="OrderHeader.City" hidden />
+    <input asp-for="OrderHeader.State" hidden />
+    <input asp-for="OrderHeader.PostalCode" hidden />
+
     <div class="container py-5">
         <div class="card shadow border-0">
             <div class="card-header bg-primary bg-gradient text-light py-4">
@@ -96,9 +104,9 @@
                                         </a>
                                     </div>
                                     <div class="col-md-6 mb-2">
-                                        <button type="submit" class="btn btn-primary w-100" disabled>
-                                            <i class="bi bi-credit-card me-2"></i>
-                                            Place Order (Coming Soon)
+                                        <button type="submit" class="btn btn-success w-100">
+                                            <i class="bi bi-check-circle me-2"></i>
+                                            Place Order
                                         </button>
                                     </div>
                                 </div>
