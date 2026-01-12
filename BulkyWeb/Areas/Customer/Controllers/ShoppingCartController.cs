@@ -4,6 +4,8 @@ using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Stripe.Checkout;
 using System.Security.Claims;
 
 namespace BulkyWeb.Areas.Customer.Controllers
@@ -13,11 +15,13 @@ namespace BulkyWeb.Areas.Customer.Controllers
     public class ShoppingCartController : Controller
     {
         private readonly IUnitOfWorkRepository _unitOfWork;
+        private readonly IOptions<StripeSettings> _stripeSettings;
         public ShoppingCartVM ShoppingCartVM { get; set; }
 
-        public ShoppingCartController(IUnitOfWorkRepository unitOfWork)
+        public ShoppingCartController(IUnitOfWorkRepository unitOfWork, IOptions<StripeSettings> stripeSettings)
         {
             _unitOfWork = unitOfWork;
+            _stripeSettings = stripeSettings;
         }
 
         public IActionResult Index()
@@ -115,7 +119,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
             // Set status based on user type
             if (applicationUser.CompanyId.GetValueOrDefault() == 0)
             {
-                // Regular customer account
+                // Regular customer account - Stripe payment
                 orderHeader.PaymentStatus = SD.PaymentStatusPending;
                 orderHeader.OrderStatus = SD.StatusPending;
             }
@@ -144,11 +148,50 @@ namespace BulkyWeb.Areas.Customer.Controllers
             }
             _unitOfWork.Save();
 
-            // Clear shopping cart
+            if (applicationUser.CompanyId.GetValueOrDefault() == 0)
+            {
+                // Regular customer - Create Stripe Session
+                var domain = Request.Scheme + "://" + Request.Host.Value + "/";
+                var options = new SessionCreateOptions
+                {
+                    SuccessUrl = domain + $"Customer/ShoppingCart/OrderConfirmation?id={orderHeader.Id}",
+                    CancelUrl = domain + "Customer/ShoppingCart/Index",
+                    LineItems = new List<SessionLineItemOptions>(),
+                    Mode = "payment",
+                };
+
+                foreach (var item in shoppingCartList)
+                {
+                    var sessionLineItem = new SessionLineItemOptions
+                    {
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            UnitAmount = (long)(item.Price * 100), // Stripe expects amount in cents
+                            Currency = "usd",
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = item.Product.Title
+                            }
+                        },
+                        Quantity = item.Count
+                    };
+                    options.LineItems.Add(sessionLineItem);
+                }
+
+                var service = new SessionService();
+                Session session = service.Create(options);
+
+                // Update OrderHeader with Stripe SessionId and PaymentIntentId using new method
+                _unitOfWork.OrderHeader.UpdateStripePaymentId(orderHeader.Id, session.Id, session.PaymentIntentId);
+                _unitOfWork.Save();
+
+                Response.Headers.Add("Location", session.Url);
+                return new StatusCodeResult(303);
+            }
+
+            // Clear shopping cart for company users
             _unitOfWork.ShoppingCart.RemoveRange(shoppingCartList);
             _unitOfWork.Save();
-            
-            // Clear session
             HttpContext.Session.Clear();
 
             return RedirectToAction(nameof(OrderConfirmation), new { id = orderHeader.Id });
@@ -163,6 +206,23 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 return NotFound();
             }
 
+            // Check if this is a regular customer (not company)
+            if (orderHeader.ApplicationUser.CompanyId.GetValueOrDefault() == 0)
+            {
+                // Regular customer - Verify Stripe payment
+                var service = new SessionService();
+                Session session = service.Get(orderHeader.SessionId);
+
+                if (session.PaymentStatus.ToLower() == "paid")
+                {
+                    // Update payment information using new methods
+                    _unitOfWork.OrderHeader.UpdateStripePaymentId(id, session.Id, session.PaymentIntentId);
+                    _unitOfWork.OrderHeader.UpdateStatus(id, SD.StatusApproved, SD.PaymentStatusApproved);
+                    _unitOfWork.Save();
+                }
+            }
+
+            // Clear shopping cart
             List<ShoppingCart> shoppingCarts = _unitOfWork.ShoppingCart
                 .GetAll(u => u.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
 
