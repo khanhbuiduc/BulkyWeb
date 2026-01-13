@@ -1,0 +1,405 @@
+@using Bulky.Utility
+@model OrderVM
+
+<form method="post" id="orderForm">
+    <input asp-for="OrderHeader.Id" hidden />
+    <input asp-for="OrderHeader.Carrier" id="hiddenCarrier" hidden />
+    <input asp-for="OrderHeader.TrackingNumber" id="hiddenTrackingNumber" hidden />
+    <div class="container">
+        <div class="card shadow border-0 my-4">
+            <div class="card-header bg-secondary bg-gradient text-white py-3">
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <h3 class="text-white mb-0">
+                            <i class="bi bi-receipt me-2"></i>
+                            Order Details
+                        </h3>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h4 class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-primary"><i class="bi bi-info-circle me-2"></i>Order Info</span>
+                            <span class="badge bg-primary">Order #@Model.OrderHeader.Id</span>
+                        </h4>
+                        <ul class="list-group mb-3">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <div>
+                                    <h6 class="my-0">Order Date</h6>
+                                </div>
+                                <span class="text-muted">@Model.OrderHeader.OrderDate.ToShortDateString()</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <div>
+                                    <h6 class="my-0">Shipping Date</h6>
+                                </div>
+                                <span class="text-muted">@Model.OrderHeader.ShippingDate.ToShortDateString()</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <div>
+                                    <h6 class="my-0">Order Status</h6>
+                                </div>
+                                @if (Model.OrderHeader.OrderStatus == SD.StatusApproved)
+                                {
+                                    <span class="badge bg-success">@Model.OrderHeader.OrderStatus</span>
+                                }
+                                else if (Model.OrderHeader.OrderStatus == SD.StatusPending)
+                                {
+                                    <span class="badge bg-warning text-dark">@Model.OrderHeader.OrderStatus</span>
+                                }
+                                else if (Model.OrderHeader.OrderStatus == SD.StatusInProcess)
+                                {
+                                    <span class="badge bg-info">@Model.OrderHeader.OrderStatus</span>
+                                }
+                                else if (Model.OrderHeader.OrderStatus == SD.StatusShipped)
+                                {
+                                    <span class="badge bg-primary">@Model.OrderHeader.OrderStatus</span>
+                                }
+                                else if (Model.OrderHeader.OrderStatus == SD.StatusCancelled)
+                                {
+                                    <span class="badge bg-danger">@Model.OrderHeader.OrderStatus</span>
+                                }
+                                else if (Model.OrderHeader.OrderStatus == SD.StatusRefunded)
+                                {
+                                    <span class="badge bg-danger"><i class="bi bi-arrow-counterclockwise"></i> @Model.OrderHeader.OrderStatus</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@Model.OrderHeader.OrderStatus</span>
+                                }
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <div>
+                                    <h6 class="my-0">Payment Status</h6>
+                                </div>
+                                @if (Model.OrderHeader.PaymentStatus == SD.PaymentStatusApproved)
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Paid</span>
+                                }
+                                else if (Model.OrderHeader.PaymentStatus == SD.PaymentStatusDelayedPayment)
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Delayed Payment</span>
+                                }
+                                else if (Model.OrderHeader.PaymentStatus == SD.StatusRefunded)
+                                {
+                                    <span class="badge bg-danger"><i class="bi bi-arrow-counterclockwise"></i> Refunded</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">@Model.OrderHeader.PaymentStatus</span>
+                                }
+                            </li>
+                            @if (Model.OrderHeader.PaymentStatus == SD.PaymentStatusDelayedPayment && Model.OrderHeader.PaymentDueDate != DateTime.MinValue)
+                            {
+                                <li class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6 class="my-0 mb-1">Payment Due Date</h6>
+                                            <small class="text-danger">
+                                                <i class="bi bi-calendar-x"></i> @Model.OrderHeader.PaymentDueDate.ToShortDateString()
+                                            </small>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.OrderHeader.SessionId))
+                            {
+                                <li class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6 class="my-0 mb-1">Session ID</h6>
+                                            <small class="text-muted text-break">@Model.OrderHeader.SessionId</small>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.OrderHeader.PaymentIntentId))
+                            {
+                                <li class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6 class="my-0 mb-1">Payment Intent ID</h6>
+                                            <small class="text-muted text-break">@Model.OrderHeader.PaymentIntentId</small>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.OrderHeader.Carrier))
+                            {
+                                <li class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6 class="my-0 mb-1">Carrier</h6>
+                                            <small class="text-muted">@Model.OrderHeader.Carrier</small>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.OrderHeader.TrackingNumber))
+                            {
+                                <li class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6 class="my-0 mb-1">Tracking Number</h6>
+                                            <small class="text-muted">@Model.OrderHeader.TrackingNumber</small>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                            <li class="list-group-item bg-light d-flex justify-content-between">
+                                <div>
+                                    <h5 class="my-0 text-primary">Order Total</h5>
+                                </div>
+                                <strong class="text-success fs-5">@Model.OrderHeader.OrderTotal.ToString("c")</strong>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-primary"><i class="bi bi-person me-2"></i>Customer Info</span>
+                        </h4>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label asp-for="OrderHeader.Name" class="form-label"></label>
+                                <input asp-for="OrderHeader.Name" type="text" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label asp-for="OrderHeader.PhoneNumber" class="form-label"></label>
+                                <input asp-for="OrderHeader.PhoneNumber" type="text" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label asp-for="OrderHeader.StreetAddress" class="form-label"></label>
+                                <input asp-for="OrderHeader.StreetAddress" type="text" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="OrderHeader.City" class="form-label"></label>
+                                <input asp-for="OrderHeader.City" type="text" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="OrderHeader.State" class="form-label"></label>
+                                <input asp-for="OrderHeader.State" type="text" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label asp-for="OrderHeader.PostalCode" class="form-label"></label>
+                                <input asp-for="OrderHeader.PostalCode" type="text" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label>Email</label>
+                                <input value="@Model.OrderHeader.ApplicationUser.Email" type="text" class="form-control" readonly />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" asp-action="UpdateOrderDetail" class="btn btn-warning w-100 mb-2">
+                                    <i class="bi bi-pencil-square"></i> Update Order Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <h4 class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-primary"><i class="bi bi-box-seam me-2"></i>Order Items</span>
+                            <span class="badge bg-secondary rounded-pill">@Model.OrderDetail.Count() items</span>
+                        </h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Price</th>
+                                        <th>Quantity</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var detail in Model.OrderDetail)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@detail.Product.Title</strong>
+                                                <br />
+                                                <small class="text-muted">by @detail.Product.Author</small>
+                                            </td>
+                                            <td>@detail.Price.ToString("c")</td>
+                                            <td>@detail.Count</td>
+                                            <td><strong>@((detail.Price * detail.Count).ToString("c"))</strong></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary mb-3">
+                                    <i class="bi bi-gear me-2"></i>Order Actions
+                                </h5>
+                                <div class="row">
+                                    @if (Model.OrderHeader.OrderStatus == SD.StatusApproved)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <button type="submit" asp-action="StartProcessing" class="btn btn-info w-100">
+                                                <i class="bi bi-arrow-repeat"></i> Start Processing
+                                            </button>
+                                        </div>
+                                    }
+                                    @if (Model.OrderHeader.OrderStatus == SD.StatusInProcess)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#shipOrderModal">
+                                                <i class="bi bi-truck"></i> Ship Order
+                                            </button>
+                                        </div>
+                                    }
+                                    @if (Model.OrderHeader.PaymentStatus == SD.PaymentStatusDelayedPayment &&
+                                         Model.OrderHeader.OrderStatus != SD.StatusCancelled)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <button type="submit" asp-action="PaymentDelayedOrder" class="btn btn-success w-100">
+                                                <i class="bi bi-credit-card"></i> Pay Now
+                                            </button>
+                                        </div>
+                                    }
+                                    @if (Model.OrderHeader.OrderStatus != SD.StatusCancelled && 
+                                         Model.OrderHeader.OrderStatus != SD.StatusShipped &&
+                                         Model.OrderHeader.OrderStatus != SD.StatusRefunded)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <button type="submit" asp-action="CancelOrder" 
+                                                    class="btn btn-danger w-100" 
+                                                    onclick="return confirm('Are you sure you want to cancel this order?')">
+                                                <i class="bi bi-x-circle"></i> Cancel Order
+                                            </button>
+                                        </div>
+                                    }
+                                    <div class="col-md-4 mb-2">
+                                        <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                                            <i class="bi bi-arrow-left"></i> Back to List
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Ship Order Modal -->
+<div class="modal fade" id="shipOrderModal" tabindex="-1" aria-labelledby="shipOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="shipOrderModalLabel">
+                    <i class="bi bi-truck me-2"></i>Ship Order
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Please enter the shipping information to complete the shipment.</p>
+                <div class="mb-3">
+                    <label for="modalCarrier" class="form-label">
+                        <i class="bi bi-building me-1"></i>Carrier <span class="text-danger">*</span>
+                    </label>
+                    <select class="form-select" id="modalCarrier" required>
+                        <option value="">-- Select Carrier --</option>
+                        <option value="FedEx">FedEx</option>
+                        <option value="UPS">UPS</option>
+                        <option value="USPS">USPS</option>
+                        <option value="DHL">DHL</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <div class="invalid-feedback">
+                        Please select a carrier.
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="modalTrackingNumber" class="form-label">
+                        <i class="bi bi-upc-scan me-1"></i>Tracking Number <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="modalTrackingNumber" placeholder="Enter tracking number" required>
+                    <div class="invalid-feedback">
+                        Please enter a tracking number.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitShipOrder()">
+                    <i class="bi bi-check-circle me-1"></i>Confirm Shipment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function submitShipOrder() {
+            var carrier = document.getElementById('modalCarrier').value;
+            var trackingNumber = document.getElementById('modalTrackingNumber').value;
+            
+            // Validate inputs
+            var isValid = true;
+            
+            if (!carrier) {
+                document.getElementById('modalCarrier').classList.add('is-invalid');
+                isValid = false;
+            } else {
+                document.getElementById('modalCarrier').classList.remove('is-invalid');
+            }
+            
+            if (!trackingNumber || trackingNumber.trim() === '') {
+                document.getElementById('modalTrackingNumber').classList.add('is-invalid');
+                isValid = false;
+            } else {
+                document.getElementById('modalTrackingNumber').classList.remove('is-invalid');
+            }
+            
+            if (!isValid) {
+                return;
+            }
+            
+            // Set values to hidden fields
+            document.getElementById('hiddenCarrier').value = carrier;
+            document.getElementById('hiddenTrackingNumber').value = trackingNumber;
+            
+            // Create a form and submit
+            var form = document.getElementById('orderForm');
+            form.action = '@Url.Action("ShipOrder", "Order", new { area = "Admin" })';
+            form.submit();
+        }
+        
+        // Clear validation on input
+        document.getElementById('modalCarrier').addEventListener('change', function() {
+            this.classList.remove('is-invalid');
+        });
+        
+        document.getElementById('modalTrackingNumber').addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+    </script>
+}

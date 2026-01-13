@@ -36,18 +36,46 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="Customer" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
-                        @if (User.IsInRole(SD.Role_Admin))
+                        @if (SignInManager.IsSignedIn(User) && !User.IsInRole(SD.Role_Admin) && !User.IsInRole(SD.Role_Employee))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="Customer" asp-controller="Order" asp-action="Index">
+                                    <i class="bi bi-list-check me-1"></i> My Orders
+                                </a>
+                            </li>
+                        }
+                        @if (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee))
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Content
+                                    <i class="bi bi-gear-fill me-1"></i> Management
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Category" asp-action="Index">Categories</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Product" asp-action="Index">Products</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Company" asp-action="Index">Companies</a></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="Admin" asp-controller="Order" asp-action="Index">
+                                            <i class="bi bi-list-check me-2"></i>Manage Orders
+                                        </a>
+                                    </li>
+                                    @if (User.IsInRole(SD.Role_Admin))
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li class="dropdown-header">Admin Only</li>
+                                        <li>
+                                            <a class="dropdown-item" asp-area="Admin" asp-controller="Category" asp-action="Index">
+                                                <i class="bi bi-tags me-2"></i>Categories
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-area="Admin" asp-controller="Product" asp-action="Index">
+                                                <i class="bi bi-box-seam me-2"></i>Products
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-area="Admin" asp-controller="Company" asp-action="Index">
+                                                <i class="bi bi-building me-2"></i>Companies
+                                            </a>
+                                        </li>
+                                    }
                                 </ul>
                             </li>
                         }
