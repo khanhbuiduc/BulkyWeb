@@ -1,0 +1,146 @@
+@model Bulky.Models.ViewModels.UserVM
+
+@{
+    ViewData["Title"] = Model.ApplicationUser.Id == null ? "Create User" : "Edit User";
+    var isEdit = !string.IsNullOrEmpty(Model.ApplicationUser.Id);
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card mt-4 mb-5 shadow">
+                <div class="card-header bg-primary bg-gradient text-white py-3">
+                    <h2 class="text-white mb-0 text-center">
+                        <i class="bi bi-@(isEdit ? "pencil-square" : "person-plus")"></i> @ViewData["Title"]
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" asp-action="Upsert">
+                        <input asp-for="ApplicationUser.Id" hidden />
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="row">
+                            <!-- Left Column -->
+                            <div class="col-md-6">
+                                <h5 class="text-primary mb-3"><i class="bi bi-person-circle"></i> Account Information</h5>
+
+                                <div class="form-floating mb-3">
+                                    <input asp-for="ApplicationUser.Email" class="form-control" placeholder="Email" />
+                                    <label asp-for="ApplicationUser.Email">Email</label>
+                                    <span asp-validation-for="ApplicationUser.Email" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <input asp-for="ApplicationUser.Name" class="form-control" placeholder="Name" />
+                                    <label asp-for="ApplicationUser.Name">Name</label>
+                                    <span asp-validation-for="ApplicationUser.Name" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <input asp-for="ApplicationUser.PhoneNumber" class="form-control" placeholder="Phone Number" />
+                                    <label asp-for="ApplicationUser.PhoneNumber">Phone Number</label>
+                                    <span asp-validation-for="ApplicationUser.PhoneNumber" class="text-danger"></span>
+                                </div>
+
+                                @if (!isEdit)
+                                {
+                                    <div class="form-floating mb-3">
+                                        <input asp-for="ApplicationUser.PasswordHash" type="password" class="form-control" placeholder="Password" />
+                                        <label asp-for="ApplicationUser.PasswordHash">Password</label>
+                                        <span asp-validation-for="ApplicationUser.PasswordHash" class="text-danger"></span>
+                                        <small class="text-muted">Minimum 6 characters</small>
+                                    </div>
+                                }
+
+                                <div class="form-floating mb-3">
+                                    <select asp-for="ApplicationUser.Role" asp-items="@Model.RoleList" class="form-select">
+                                        <option disabled selected>-- Select Role --</option>
+                                    </select>
+                                    <label asp-for="ApplicationUser.Role">Role</label>
+                                    <span asp-validation-for="ApplicationUser.Role" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-floating mb-3" id="companyField" style="display:none;">
+                                    <select asp-for="ApplicationUser.CompanyId" asp-items="@Model.CompanyList" class="form-select">
+                                        <option value="">-- Select Company --</option>
+                                    </select>
+                                    <label asp-for="ApplicationUser.CompanyId">Company</label>
+                                    <span asp-validation-for="ApplicationUser.CompanyId" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <!-- Right Column -->
+                            <div class="col-md-6">
+                                <h5 class="text-primary mb-3"><i class="bi bi-geo-alt"></i> Address Information (Optional)</h5>
+
+                                <div class="form-floating mb-3">
+                                    <input asp-for="ApplicationUser.StreetAddress" class="form-control" placeholder="Street Address" />
+                                    <label asp-for="ApplicationUser.StreetAddress">Street Address</label>
+                                    <span asp-validation-for="ApplicationUser.StreetAddress" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <input asp-for="ApplicationUser.City" class="form-control" placeholder="City" />
+                                    <label asp-for="ApplicationUser.City">City</label>
+                                    <span asp-validation-for="ApplicationUser.City" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <input asp-for="ApplicationUser.State" class="form-control" placeholder="State" />
+                                    <label asp-for="ApplicationUser.State">State</label>
+                                    <span asp-validation-for="ApplicationUser.State" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <input asp-for="ApplicationUser.PostalCode" class="form-control" placeholder="Postal Code" />
+                                    <label asp-for="ApplicationUser.PostalCode">Postal Code</label>
+                                    <span asp-validation-for="ApplicationUser.PostalCode" class="text-danger"></span>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i>
+                                    <strong>Note:</strong> Address fields are optional.
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="row">
+                            <div class="col-6">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-@(isEdit ? "check-circle" : "plus-circle")"></i> @(isEdit ? "Update" : "Create")
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <a asp-action="Index" class="btn btn-secondary w-100">
+                                    <i class="bi bi-arrow-left-circle"></i> Back to List
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            function toggleCompanyField() {
+                var selectedRole = $('#ApplicationUser_Role').val();
+                if (selectedRole === 'Company') {
+                    $('#companyField').show();
+                } else {
+                    $('#companyField').hide();
+                    $('#ApplicationUser_CompanyId').val('');
+                }
+            }
+
+            $('#ApplicationUser_Role').change(toggleCompanyField);
+            toggleCompanyField();
+        });
+    </script>
+}

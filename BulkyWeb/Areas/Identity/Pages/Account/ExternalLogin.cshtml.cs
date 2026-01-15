@@ -9,12 +9,16 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading;
 using System.Threading.Tasks;
+using Bulky.DataAccess.Repository.IRepository;
+using Bulky.Models;
+using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 
@@ -29,13 +33,17 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<IdentityUser> _emailStore;
         private readonly IEmailSender _emailSender;
         private readonly ILogger<ExternalLoginModel> _logger;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IUnitOfWorkRepository _unitOfWork;
 
         public ExternalLoginModel(
             SignInManager<IdentityUser> signInManager,
             UserManager<IdentityUser> userManager,
             IUserStore<IdentityUser> userStore,
             ILogger<ExternalLoginModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            RoleManager<IdentityRole> roleManager,
+            IUnitOfWorkRepository unitOfWork)
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -43,54 +51,50 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             _emailStore = GetEmailStore();
             _logger = logger;
             _emailSender = emailSender;
+            _roleManager = roleManager;
+            _unitOfWork = unitOfWork;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [BindProperty]
         public InputModel Input { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public string ProviderDisplayName { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public string ReturnUrl { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [TempData]
         public string ErrorMessage { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public class InputModel
         {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
             [Required]
             [EmailAddress]
             public string Email { get; set; }
+
+            [Required]
+            [Display(Name = "Name")]
+            public string Name { get; set; }
+
+            [Display(Name = "Phone Number")]
+            public string PhoneNumber { get; set; }
+
+            [Display(Name = "Street Address")]
+            public string StreetAddress { get; set; }
+
+            [Display(Name = "City")]
+            public string City { get; set; }
+
+            [Display(Name = "State")]
+            public string State { get; set; }
+
+            [Display(Name = "Postal Code")]
+            public string PostalCode { get; set; }
         }
         
         public IActionResult OnGet() => RedirectToPage("./Login");
 
         public IActionResult OnPost(string provider, string returnUrl = null)
         {
-            // Request a redirect to the external login provider.
             var redirectUrl = Url.Page("./ExternalLogin", pageHandler: "Callback", values: new { returnUrl });
             var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
             return new ChallengeResult(provider, properties);
@@ -111,7 +115,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
             }
 
-            // Sign in the user with this external login provider if the user already has a login.
             var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
             if (result.Succeeded)
             {
@@ -124,16 +127,17 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             }
             else
             {
-                // If the user does not have an account, then ask the user to create an account.
+                await InitializeRolesAsync();
+                
+                // Public External Login: không cần RoleList và CompanyList
+                // Chỉ cho phép đăng ký Customer
+                
                 ReturnUrl = returnUrl;
                 ProviderDisplayName = info.ProviderDisplayName;
-                if (info.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
-                {
-                    Input = new InputModel
-                    {
-                        Email = info.Principal.FindFirstValue(ClaimTypes.Email)
-                    };
-                }
+
+                // Không tự động điền thông tin - để người dùng tự nhập
+                Input = new InputModel();
+
                 return Page();
             }
         }
@@ -141,7 +145,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
         public async Task<IActionResult> OnPostConfirmationAsync(string returnUrl = null)
         {
             returnUrl = returnUrl ?? Url.Content("~/");
-            // Get the information about the user from the external login provider
             var info = await _signInManager.GetExternalLoginInfoAsync();
             if (info == null)
             {
@@ -156,6 +159,16 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
 
+                user.Name = Input.Name;
+                user.PhoneNumber = Input.PhoneNumber;
+                user.StreetAddress = Input.StreetAddress;
+                user.City = Input.City;
+                user.State = Input.State;
+                user.PostalCode = Input.PostalCode;
+
+                // Public External Login: luôn set role là Customer
+                // Không cho phép chọn Company
+
                 var result = await _userManager.CreateAsync(user);
                 if (result.Succeeded)
                 {
@@ -163,6 +176,9 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                     if (result.Succeeded)
                     {
                         _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
+
+                        // Public External Login: luôn là Customer
+                        await _userManager.AddToRoleAsync(user, SD.Role_Customer);
 
                         var userId = await _userManager.GetUserIdAsync(user);
                         var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -176,7 +192,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                         await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
                             $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
 
-                        // If account confirmation is required, we need to show the link if we don't have a real email sender
                         if (_userManager.Options.SignIn.RequireConfirmedAccount)
                         {
                             return RedirectToPage("./RegisterConfirmation", new { Email = Input.Email });
@@ -197,16 +212,39 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             return Page();
         }
 
-        private IdentityUser CreateUser()
+        private async Task InitializeRolesAsync()
+        {
+            if (!await _roleManager.RoleExistsAsync(SD.Role_Customer))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Customer));
+            }
+
+            if (!await _roleManager.RoleExistsAsync(SD.Role_Company))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Company));
+            }
+
+            if (!await _roleManager.RoleExistsAsync(SD.Role_Admin))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Admin));
+            }
+
+            if (!await _roleManager.RoleExistsAsync(SD.Role_Employee))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Employee));
+            }
+        }
+
+        private ApplicationUser CreateUser()
         {
             try
             {
-                return Activator.CreateInstance<IdentityUser>();
+                return Activator.CreateInstance<ApplicationUser>();
             }
             catch
             {
-                throw new InvalidOperationException($"Can't create an instance of '{nameof(IdentityUser)}'. " +
-                    $"Ensure that '{nameof(IdentityUser)}' is not an abstract class and has a parameterless constructor, or alternatively " +
+                throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
+                    $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor, or alternatively " +
                     $"override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml");
             }
         }

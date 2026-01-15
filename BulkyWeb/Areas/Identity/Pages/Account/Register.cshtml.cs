@@ -74,9 +74,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
         /// </summary>
         public IList<AuthenticationScheme> ExternalLogins { get; set; }
 
-        public IEnumerable<SelectListItem> RoleList { get; set; }
-        public IEnumerable<SelectListItem> CompanyList { get; set; }
-
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
@@ -112,10 +109,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             public string ConfirmPassword { get; set; }
 
             [Required]
-            [Display(Name = "Role")]
-            public string Role { get; set; }
-
-            [Required]
             [Display(Name = "Name")]
             public string Name { get; set; }
 
@@ -134,28 +127,35 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             [Display(Name = "Phone Number")]
             public string PhoneNumber { get; set; }
 
+            // Admin fields
+            [Display(Name = "Role")]
+            public string Role { get; set; }
+
             [Display(Name = "Company")]
             public int? CompanyId { get; set; }
         }
 
 
+        public IEnumerable<SelectListItem> RoleList { get; set; }
+        public IEnumerable<SelectListItem> CompanyList { get; set; }
+
         public async Task OnGetAsync(string returnUrl = null)
         {
             await InitializeRolesAsync();
-            RoleList = _roleManager.Roles.Select(x => new SelectListItem
-            {
-                Text = x.Name,
-                Value = x.Name
-            });
-            
-            CompanyList = _unitOfWork.Company.GetAll().Select(c => new SelectListItem
-            {
-                Text = c.Name,
-                Value = c.Id.ToString()
-            });
             
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
+            // Load RoleList and CompanyList for Admin/Employee
+            if (User.Identity.IsAuthenticated && (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee)))
+            {
+                RoleList = GetRoleListForCurrentUser();
+                CompanyList = _unitOfWork.Company.GetAll().Select(c => new SelectListItem
+                {
+                    Text = c.Name,
+                    Value = c.Id.ToString()
+                });
+            }
         }
         private async Task InitializeRolesAsync()
         {
@@ -191,6 +191,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
         {
             returnUrl ??= Url.Content("~/");
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            
             if (ModelState.IsValid)
             {
                 var user = CreateUser();
@@ -205,7 +206,8 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 user.PostalCode = Input.PostalCode;
                 user.PhoneNumber = Input.PhoneNumber;
                 
-                if (Input.Role == SD.Role_Company)
+                // Set CompanyId only if role is Company
+                if (!string.IsNullOrEmpty(Input.Role) && Input.Role == SD.Role_Company)
                 {
                     user.CompanyId = Input.CompanyId;
                 }
@@ -216,14 +218,19 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation("User created a new account with password.");
 
-                    if (!string.IsNullOrEmpty(Input.Role))
+                    // Assign role based on who is creating the user
+                    string assignedRole = SD.Role_Customer; // Default for public registration
+                    
+                    if (User.Identity.IsAuthenticated && (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee)))
                     {
-                        await _userManager.AddToRoleAsync(user, Input.Role);
+                        // Admin/Employee creating user: use selected role or default to Customer
+                        if (!string.IsNullOrEmpty(Input.Role))
+                        {
+                            assignedRole = Input.Role;
+                        }
                     }
-                    else
-                    {
-                        await _userManager.AddToRoleAsync(user, SD.Role_Customer);
-                    }
+                    
+                    await _userManager.AddToRoleAsync(user, assignedRole);
 
                     var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -243,6 +250,13 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                     }
                     else
                     {
+                        // If Admin/Employee created user, redirect to user management
+                        if (User.Identity.IsAuthenticated && (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee)))
+                        {
+                            TempData["success"] = "User created successfully";
+                            return LocalRedirect("~/Admin/User");
+                        }
+                        
                         await _signInManager.SignInAsync(user, isPersistent: false);
                         return LocalRedirect(returnUrl);
                     }
@@ -253,17 +267,16 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 }
             }
 
-            RoleList = _roleManager.Roles.Select(x => new SelectListItem
+            // Reload lists if validation failed and user is Admin/Employee
+            if (User.Identity.IsAuthenticated && (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee)))
             {
-                Text = x.Name,
-                Value = x.Name
-            });
-            
-            CompanyList = _unitOfWork.Company.GetAll().Select(c => new SelectListItem
-            {
-                Text = c.Name,
-                Value = c.Id.ToString()
-            });
+                RoleList = GetRoleListForCurrentUser();
+                CompanyList = _unitOfWork.Company.GetAll().Select(c => new SelectListItem
+                {
+                    Text = c.Name,
+                    Value = c.Id.ToString()
+                });
+            }
 
             // If we got this far, something failed, redisplay form
             return Page();
@@ -277,8 +290,8 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             }
             catch
             {
-                throw new InvalidOperationException($"Can't create an instance of '{nameof(IdentityUser)}'. " +
-                    $"Ensure that '{nameof(IdentityUser)}' is not an abstract class and has a parameterless constructor, or alternatively " +
+                throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
+                    $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor, or alternatively " +
                     $"override the register page in /Areas/Identity/Pages/Account/Register.cshtml");
             }
         }
@@ -290,6 +303,23 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 throw new NotSupportedException("The default UI requires a user store with email support.");
             }
             return (IUserEmailStore<IdentityUser>)_userStore;
+        }
+
+        private IEnumerable<SelectListItem> GetRoleListForCurrentUser()
+        {
+            var roles = _roleManager.Roles.AsEnumerable();
+
+            // If current user is Employee, exclude Admin and Employee roles
+            if (User.IsInRole(SD.Role_Employee))
+            {
+                roles = roles.Where(r => r.Name != SD.Role_Admin && r.Name != SD.Role_Employee);
+            }
+
+            return roles.Select(r => new SelectListItem
+            {
+                Text = r.Name,
+                Value = r.Name
+            });
         }
     }
 }

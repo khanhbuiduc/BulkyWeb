@@ -2,6 +2,7 @@
 @model RegisterModel
 @{
     ViewData["Title"] = "Register";
+    var isAdminCreating = User.Identity.IsAuthenticated && (User.IsInRole(Bulky.Utility.SD.Role_Admin) || User.IsInRole(Bulky.Utility.SD.Role_Employee));
 }
 
 <div class="container">
@@ -53,22 +54,25 @@
                                     <label asp-for="Input.ConfirmPassword">Confirm Password</label>
                                     <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
                                 </div>
-                                
-                                <div class="form-floating mb-3">
-                                    <select asp-for="Input.Role" asp-items="@Model.RoleList" class="form-select">
-                                        <option disabled selected>-- Select Role --</option>
-                                    </select>
-                                    <label asp-for="Input.Role">Role</label>
-                                    <span asp-validation-for="Input.Role" class="text-danger"></span>
-                                </div>
-                                
-                                <div class="form-floating mb-3">
-                                    <select asp-for="Input.CompanyId" asp-items="@Model.CompanyList" class="form-select">
-                                        <option disabled selected>-- Select Company --</option>
-                                    </select>
-                                    <label asp-for="Input.CompanyId">Company</label>
-                                    <span asp-validation-for="Input.CompanyId" class="text-danger"></span>
-                                </div>
+
+                                @if (isAdminCreating)
+                                {
+                                    <div class="form-floating mb-3">
+                                        <select asp-for="Input.Role" asp-items="@Model.RoleList" class="form-select">
+                                            <option value="">-- Select Role --</option>
+                                        </select>
+                                        <label asp-for="Input.Role">Role</label>
+                                        <span asp-validation-for="Input.Role" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="form-floating mb-3" id="companyField" style="display:none;">
+                                        <select asp-for="Input.CompanyId" asp-items="@Model.CompanyList" class="form-select">
+                                            <option value="">-- Select Company --</option>
+                                        </select>
+                                        <label asp-for="Input.CompanyId">Company</label>
+                                        <span asp-validation-for="Input.CompanyId" class="text-danger"></span>
+                                    </div>
+                                }
                             </div>
                             
                             <!-- Right Column -->
@@ -109,23 +113,36 @@
                         <hr class="my-4" />
                         
                         <div class="row">
-                            <div class="col-md-6 offset-md-3">
+                            <div class="col-md-6 @(isAdminCreating ? "" : "offset-md-3")">
                                 <div class="mb-3">
                                     <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-success">
                                         <i class="bi bi-person-plus"></i> Register
                                     </button>
                                 </div>
-                                <div class="text-center">
-                                    <p class="mb-0">Already have an account?</p>
-                                    <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl" class="text-decoration-none">
-                                        <i class="bi bi-box-arrow-in-right"></i> Login here
-                                    </a>
-                                </div>
+                                @if (!isAdminCreating)
+                                {
+                                    <div class="text-center">
+                                        <p class="mb-0">Already have an account?</p>
+                                        <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl" class="text-decoration-none">
+                                            <i class="bi bi-box-arrow-in-right"></i> Login here
+                                        </a>
+                                    </div>
+                                }
                             </div>
+                            @if (isAdminCreating)
+                            {
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <a asp-area="Admin" asp-controller="User" asp-action="Index" class="w-100 btn btn-lg btn-secondary">
+                                            <i class="bi bi-arrow-left-circle"></i> Back to List
+                                        </a>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     </form>
                     
-                    @if ((Model.ExternalLogins?.Count ?? 0) > 0)
+                    @if (!isAdminCreating && (Model.ExternalLogins?.Count ?? 0) > 0)
                     {
                         <hr class="my-4" />
                         <div class="row">
@@ -150,27 +167,23 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        $(document).ready(function () {
-            // Hide company dropdown initially
-            $('#Input_CompanyId').closest('.form-floating').hide();
-            
-            // Show/hide company dropdown based on role selection
-            $('#Input_Role').change(function () {
-                var selectedRole = $(this).val();
-                if (selectedRole === 'Company') {
-                    $('#Input_CompanyId').closest('.form-floating').show();
-                } else {
-                    $('#Input_CompanyId').closest('.form-floating').hide();
-                    $('#Input_CompanyId').val('');
+    @if (isAdminCreating)
+    {
+        <script>
+            $(document).ready(function () {
+                function toggleCompanyField() {
+                    var selectedRole = $('#Input_Role').val();
+                    if (selectedRole === 'Company') {
+                        $('#companyField').show();
+                    } else {
+                        $('#companyField').hide();
+                        $('#Input_CompanyId').val('');
+                    }
                 }
+
+                $('#Input_Role').change(toggleCompanyField);
+                toggleCompanyField();
             });
-            
-            // Check initial value on page load
-            var initialRole = $('#Input_Role').val();
-            if (initialRole === 'Company') {
-                $('#Input_CompanyId').closest('.form-floating').show();
-            }
-        });
-    </script>
+        </script>
+    }
 }
