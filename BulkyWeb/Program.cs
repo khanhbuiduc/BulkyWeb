@@ -1,5 +1,6 @@
 using Bulky.DataAccess;
 using Bulky.DataAccess.Data;
+using Bulky.DataAccess.DbInitializer;
 using Bulky.DataAccess.Repository;
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
@@ -54,6 +55,7 @@ builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Str
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IUnitOfWorkRepository, UnitOfWordRepository>();
+builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 
 var app = builder.Build();
 
@@ -72,6 +74,13 @@ app.UseRouting();
 
 // Set Stripe API Key
 StripeConfiguration.ApiKey = builder.Configuration.GetSection("Stripe:SecretKey").Get<string>();
+
+// Initialize Database (Apply Migrations, Create Roles, Create Admin User)
+using (var scope = app.Services.CreateScope())
+{
+    var dbInitializer = scope.ServiceProvider.GetRequiredService<IDbInitializer>();
+    dbInitializer.Initialize();
+}
 
 app.UseSession();
 app.UseAuthentication();

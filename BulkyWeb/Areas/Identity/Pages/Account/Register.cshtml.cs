@@ -141,8 +141,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
 
         public async Task OnGetAsync(string returnUrl = null)
         {
-            await InitializeRolesAsync();
-            
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
@@ -155,36 +153,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                     Text = c.Name,
                     Value = c.Id.ToString()
                 });
-            }
-        }
-        private async Task InitializeRolesAsync()
-        {
-            // Kiểm tra và tạo role Customer
-            if (!await _roleManager.RoleExistsAsync(SD.Role_Customer))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Customer));
-                _logger.LogInformation($"Role {SD.Role_Customer} đã được tạo.");
-            }
-
-            // Kiểm tra và tạo role Company
-            if (!await _roleManager.RoleExistsAsync(SD.Role_Company))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Company));
-                _logger.LogInformation($"Role {SD.Role_Company} đã được tạo.");
-            }
-
-            // Kiểm tra và tạo role Admin
-            if (!await _roleManager.RoleExistsAsync(SD.Role_Admin))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Admin));
-                _logger.LogInformation($"Role {SD.Role_Admin} đã được tạo.");
-            }
-
-            // Kiểm tra và tạo role Employee
-            if (!await _roleManager.RoleExistsAsync(SD.Role_Employee))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Employee));
-                _logger.LogInformation($"Role {SD.Role_Employee} đã được tạo.");
             }
         }
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
