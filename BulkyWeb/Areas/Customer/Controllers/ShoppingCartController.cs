@@ -3,6 +3,7 @@ using Bulky.Models;
 using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Stripe.Checkout;
@@ -16,12 +17,14 @@ namespace BulkyWeb.Areas.Customer.Controllers
     {
         private readonly IUnitOfWorkRepository _unitOfWork;
         private readonly IOptions<StripeSettings> _stripeSettings;
+        private readonly IEmailSender _emailSender;
         public ShoppingCartVM ShoppingCartVM { get; set; }
 
-        public ShoppingCartController(IUnitOfWorkRepository unitOfWork, IOptions<StripeSettings> stripeSettings)
+        public ShoppingCartController(IUnitOfWorkRepository unitOfWork, IOptions<StripeSettings> stripeSettings, IEmailSender emailSender)
         {
             _unitOfWork = unitOfWork;
             _stripeSettings = stripeSettings;
+            _emailSender = emailSender;
         }
 
         public IActionResult Index()
@@ -221,6 +224,21 @@ namespace BulkyWeb.Areas.Customer.Controllers
                     _unitOfWork.Save();
                 }
             }
+
+            // Send confirmation email
+            _emailSender.SendEmailAsync(
+                orderHeader.ApplicationUser.Email,
+                "Order Confirmation - Bulky Book",
+                $@"<h1>Thank you for your order!</h1>
+                   <p>Dear {orderHeader.Name},</p>
+                   <p>Your order has been confirmed.</p>
+                   <p><strong>Order ID:</strong> {orderHeader.Id}</p>
+                   <p><strong>Order Date:</strong> {orderHeader.OrderDate.ToShortDateString()}</p>
+                   <p><strong>Order Total:</strong> ${orderHeader.OrderTotal:0.00}</p>
+                   <p><strong>Shipping Address:</strong><br/>
+                   {orderHeader.StreetAddress}<br/>
+                   {orderHeader.City}, {orderHeader.State} {orderHeader.PostalCode}</p>
+                   <p>Thank you for shopping with Bulky Book!</p>");
 
             // Clear shopping cart
             List<ShoppingCart> shoppingCarts = _unitOfWork.ShoppingCart

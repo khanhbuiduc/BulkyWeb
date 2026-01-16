@@ -13,7 +13,10 @@ using Microsoft.EntityFrameworkCore;
 using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load secrets from appsettings.Secrets.json (contains Stripe & SendGrid API keys)
 builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: true);
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
