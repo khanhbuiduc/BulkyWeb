@@ -397,10 +397,10 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 .idea/
-// ...existing code...
 
 # Secret files
 appsettings.Secrets.json
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+!appsettings.Production.json
