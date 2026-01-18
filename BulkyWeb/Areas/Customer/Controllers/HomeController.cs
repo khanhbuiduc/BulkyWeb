@@ -26,6 +26,44 @@ namespace BulkyWeb.Controllers
             return View(productList);
         }
 
+        public IActionResult Search(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            var searchResults = _unitOfWork.Product.SearchProducts(query);
+            ViewBag.SearchQuery = query;
+            ViewBag.ResultCount = searchResults.Count();
+            
+            return View(searchResults);
+        }
+
+        [HttpGet]
+        public IActionResult SearchSuggestions(string term)
+        {
+            if (string.IsNullOrWhiteSpace(term) || term.Length < 2)
+            {
+                return Json(new List<object>());
+            }
+
+            var suggestions = _unitOfWork.Product.SearchProducts(term)
+                .Take(5)
+                .Select(p => new
+                {
+                    id = p.Id,
+                    label = p.Title,
+                    value = p.Title,
+                    author = p.Author,
+                    price = p.Price,
+                    imageUrl = p.ImageUrl ?? "/images/placeholder.png"
+                })
+                .ToList();
+
+            return Json(suggestions);
+        }
+
         public IActionResult Details(int id)
         {
             ShoppingCart cart = new()

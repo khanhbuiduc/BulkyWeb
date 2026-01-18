@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
     <link rel="stylesheet" href="//cdn.datatables.net/2.3.6/css/dataTables.dataTables.min.css" />
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script src="https://cdn.tiny.cloud/1/5yawfz9vtdd1q8y96mvd3ip1mrhecbk99ya8ff3enftl01st/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -85,6 +86,19 @@
                             </li>
                         }
                     </ul>
+                    
+                    <!-- Search Bar -->
+                    <form class="d-flex mx-3" asp-area="Customer" asp-controller="Home" asp-action="Search" method="get" style="min-width: 300px;">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="searchInput" name="query" 
+                                   placeholder="Search products..." aria-label="Search" autocomplete="off" 
+                                   style="background-color: rgba(255,255,255,0.9);">
+                            <button class="btn btn-light" type="submit">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+
                     <div class="d-flex align-items-center">
                         @if (SignInManager.IsSignedIn(User))
                         {
@@ -108,11 +122,54 @@
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="//cdn.datatables.net/2.3.6/js/dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        $(document).ready(function () {
+            // Initialize autocomplete for search
+            $("#searchInput").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchSuggestions", "Home", new { area = "Customer" })',
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item.label + ' - ' + item.author,
+                                    value: item.value,
+                                    id: item.id,
+                                    imageUrl: item.imageUrl,
+                                    author: item.author,
+                                    price: item.price
+                                };
+                            }));
+                        }
+                    });
+                },
+                minLength: 2,
+                select: function (event, ui) {
+                    window.location.href = '@Url.Action("Details", "Home", new { area = "Customer" })/' + ui.item.id;
+                    return false;
+                }
+            }).data("ui-autocomplete")._renderItem = function (ul, item) {
+                return $("<li>")
+                    .append("<div class='d-flex align-items-center p-2'>" +
+                        "<img src='" + (item.imageUrl || '/images/placeholder.png') + "' style='width: 50px; height: 50px; object-fit: cover; margin-right: 10px;' />" +
+                        "<div>" +
+                        "<div class='fw-bold'>" + item.label + "</div>" +
+                        "<small class='text-muted'>$" + item.price.toFixed(2) + "</small>" +
+                        "</div>" +
+                        "</div>")
+                    .appendTo(ul);
+            };
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
     @if (TempData["success"] != null)
     {

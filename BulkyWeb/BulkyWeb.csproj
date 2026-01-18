@@ -41,8 +41,4 @@
     <ProjectReference Include="..\Bulky.DataAccess\Bulky.DataAccess.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Bulky.DataAccess\Repository\IRepository\" />
-  </ItemGroup>
-
 </Project>
