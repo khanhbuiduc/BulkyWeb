@@ -7,9 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="images\**" />
     <Compile Remove="Migrations\**" />
+    <Content Remove="images\**" />
     <Content Remove="Migrations\**" />
+    <EmbeddedResource Remove="images\**" />
     <EmbeddedResource Remove="Migrations\**" />
+    <None Remove="images\**" />
     <None Remove="Migrations\**" />
   </ItemGroup>
 
@@ -38,7 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="images\product\" />
+    <Folder Include="Bulky.DataAccess\Repository\IRepository\" />
   </ItemGroup>
 
 </Project>

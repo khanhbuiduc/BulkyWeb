@@ -13,6 +13,7 @@ namespace Bulky.DataAccess.Data
 
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<Company> Companies { get; set; }
         public DbSet<ShoppingCart> ShoppingCarts { get; set; }
@@ -34,6 +35,12 @@ namespace Bulky.DataAccess.Data
                 new Product { Id = 2, Title = "Product 2", Description = "Description 2", ISBN = "ISBN002", Author = "Author 2", ListPrice = 70, Price = 70, Price50 = 65, Price100 = 60, CategoryId = 2, ImageUrl = "" },
                 new Product { Id = 3, Title = "Product 3", Description = "Description 3", ISBN = "ISBN003", Author = "Author 3", ListPrice = 80, Price = 80, Price50 = 75, Price100 = 70, CategoryId = 3, ImageUrl = "" }
             );
+
+            modelBuilder.Entity<ProductImage>()
+                .HasOne(pi => pi.Product)
+                .WithMany(p => p.ProductImages)
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

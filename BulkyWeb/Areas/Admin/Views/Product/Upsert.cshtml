@@ -10,6 +10,7 @@
             <div asp-validation-summary="All" class="text-danger"></div>
             <input asp-for="Product.Id" hidden />
             <input asp-for="Product.ImageUrl" hidden />
+            <input type="file" id="mainImageUpload" name="file" style="display:none;" accept="image/*" onchange="previewMainImage(this)" />
             <div class="row">
                 <div class="col-md-10">
                     <div class="row">
@@ -63,13 +64,47 @@
                                 <input asp-for="Product.Price100" type="number" step="0.01" class="form-control" />
                                 <span asp-validation-for="Product.Price100" class="text-danger"></span>
                             </div>
+                        </div>
+                    </div>
+                    
+                    @if (Model.Product.Id != 0 && Model.Product.ProductImages != null && Model.Product.ProductImages.Any())
+                    {
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h5>Existing Images</h5>
+                                <div class="row" id="existingImagesContainer">
+                                    @foreach (var image in Model.Product.ProductImages)
+                                    {
+                                        <div class="col-md-2 col-sm-3 col-4 mb-3 position-relative image-container" data-image-id="@image.Id">
+                                            <img src="@image.ImageUrl" class="img-thumbnail" style="width: 100%; height: 150px; object-fit: cover;" />
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1" 
+                                                    onclick="deleteImage(@image.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="row mt-3">
+                        <div class="col-12">
                             <div class="mb-3">
-                                <label class="form-label">Image</label>
-                                <input type="file" id="uploadBox" name="file" class="form-control" onchange="previewImage(this)" />
-                                
+                                <label class="form-label">Upload Additional Images (Multiple)</label>
+                                <input type="file" id="uploadBox" name="files" class="form-control" multiple accept="image/*" onchange="previewImages(this)" />
+                                <small class="text-muted">You can select multiple images to add to the gallery</small>
                             </div>
                         </div>
                     </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h5>New Images Preview</h5>
+                            <div class="row" id="imagePreviewContainer"></div>
+                        </div>
+                    </div>
+
                     <div class="row mt-3 mb-4">
                         <div class="col-6 col-md-3">
                             <button type="submit" class="btn btn-primary form-control">
@@ -84,13 +119,33 @@
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <img id="imagePreview" src="@(string.IsNullOrEmpty(Model.Product.ImageUrl) ? "" : Model.Product.ImageUrl)" 
-                         class="img-fluid" 
-                         style="@(string.IsNullOrEmpty(Model.Product.ImageUrl) ? "display:none;" : "")max-width: 100%; border-radius: 5px; border: 1px solid #bbb;" />
-                    <div id="noImagePlaceholder" style="@(!string.IsNullOrEmpty(Model.Product.ImageUrl) ? "display:none;" : "")padding: 20px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6; text-align: center;">
-                        <i class="bi bi-image" style="font-size: 3rem; color: #6c757d;"></i>
-                        <p class="mt-2 text-muted">No Image</p>
+                    <div class="text-center mb-2">
+                        <label class="form-label fw-bold">Main Image</label>
+                        <small class="d-block text-muted">Click to change</small>
                     </div>
+                    <div id="mainImageContainer" onclick="document.getElementById('mainImageUpload').click();" 
+                         style="cursor: pointer; position: relative;">
+                        @if (!string.IsNullOrEmpty(Model.Product.ImageUrl))
+                        {
+                            <img id="mainImagePreview" src="@Model.Product.ImageUrl" class="img-fluid" 
+                                 style="max-width: 100%; border-radius: 5px; border: 2px solid #007bff;" />
+                            <div class="position-absolute top-50 start-50 translate-middle" 
+                                 style="display: none; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;"
+                                 id="mainImageHoverOverlay">
+                                <i class="bi bi-camera text-white" style="font-size: 2rem;"></i>
+                            </div>
+                        }
+                        else
+                        {
+                            <div id="mainImagePlaceholder" style="padding: 20px; background-color: #f8f9fa; border-radius: 5px; border: 2px dashed #007bff; text-align: center;">
+                                <i class="bi bi-camera" style="font-size: 3rem; color: #007bff;"></i>
+                                <p class="mt-2 text-muted">Click to upload<br/>main image</p>
+                            </div>
+                        }
+                    </div>
+                    <small class="d-block text-center mt-2 text-primary">
+                        <i class="bi bi-star-fill"></i> Primary Display
+                    </small>
                 </div>
             </div>
         </form>
@@ -106,16 +161,102 @@
             toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help'
         });
 
-        function previewImage(input) {
+        // Hover effect for main image
+        document.getElementById('mainImageContainer')?.addEventListener('mouseenter', function() {
+            const overlay = document.getElementById('mainImageHoverOverlay');
+            if (overlay) {
+                overlay.style.display = 'block';
+            }
+        });
+
+        document.getElementById('mainImageContainer')?.addEventListener('mouseleave', function() {
+            const overlay = document.getElementById('mainImageHoverOverlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        });
+
+        function previewMainImage(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
                 reader.onload = function (e) {
-                    document.getElementById('imagePreview').src = e.target.result;
-                    document.getElementById('imagePreview').style.display = 'block';
-                    document.getElementById('noImagePlaceholder').style.display = 'none';
+                    const container = document.getElementById('mainImageContainer');
+                    const placeholder = document.getElementById('mainImagePlaceholder');
+                    
+                    if (placeholder) {
+                        placeholder.remove();
+                    }
+
+                    let img = document.getElementById('mainImagePreview');
+                    if (!img) {
+                        img = document.createElement('img');
+                        img.id = 'mainImagePreview';
+                        img.className = 'img-fluid';
+                        img.style.cssText = 'max-width: 100%; border-radius: 5px; border: 2px solid #007bff;';
+                        
+                        const overlay = document.createElement('div');
+                        overlay.id = 'mainImageHoverOverlay';
+                        overlay.className = 'position-absolute top-50 start-50 translate-middle';
+                        overlay.style.cssText = 'display: none; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;';
+                        overlay.innerHTML = '<i class="bi bi-camera text-white" style="font-size: 2rem;"></i>';
+                        
+                        container.appendChild(img);
+                        container.appendChild(overlay);
+                    }
+                    
+                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        function previewImages(input) {
+            const container = document.getElementById('imagePreviewContainer');
+            container.innerHTML = '';
+
+            if (input.files) {
+                Array.from(input.files).forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const colDiv = document.createElement('div');
+                        colDiv.className = 'col-md-2 col-sm-3 col-4 mb-3';
+                        colDiv.innerHTML = `
+                            <div class="position-relative">
+                                <img src="${e.target.result}" class="img-thumbnail" style="width: 100%; height: 150px; object-fit: cover;" />
+                                <span class="badge bg-primary position-absolute top-0 start-0 m-1">${index + 1}</span>
+                            </div>
+                        `;
+                        container.appendChild(colDiv);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        function deleteImage(imageId) {
+            if (!confirm('Are you sure you want to delete this image?')) {
+                return;
+            }
+
+            fetch(`/Admin/Product/DeleteImage?imageId=${imageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelector(`[data-image-id="${imageId}"]`).remove();
+                    toastr.success(data.message);
+                } else {
+                    toastr.error(data.message);
+                }
+            })
+            .catch(error => {
+                toastr.error('Error deleting image');
+                console.error('Error:', error);
+            });
         }
     </script>
     <partial name="_ValidationScriptsPartial" />
